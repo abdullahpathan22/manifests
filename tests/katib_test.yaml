@@ -44,6 +44,7 @@ spec:
             annotations:
               sidecar.istio.io/inject: "false"
           spec:
+            hostUsers: false
             securityContext:
               runAsNonRoot: true
               runAsUser: 1000

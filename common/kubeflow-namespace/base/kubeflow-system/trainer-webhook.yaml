@@ -6,7 +6,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      service.istio.io/canonical-name: trainer
+      app.kubernetes.io/name: trainer
   ingress:
   - ports:
     - protocol: TCP
