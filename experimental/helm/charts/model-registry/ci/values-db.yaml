@@ -10,7 +10,7 @@ server:
   replicas: 1
   dataStoreType: embedmd
   image:
-    tag: "v0.3.7"
+    tag: "v0.3.8"
   resources:
     limits:
       cpu: 200m
@@ -76,4 +76,4 @@ configMap:
     MODEL_REGISTRY_DATA_STORE_TYPE: "embedmd"
 
 rbac:
-  create: true 
+  create: true
