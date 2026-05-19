@@ -19,12 +19,22 @@ create_branch "$BRANCH_NAME"
 mkdir -p "$SOURCE_DIRECTORY"
 cd "$SOURCE_DIRECTORY"
 if [ ! -d "istio-${COMMIT}" ]; then
-    curl -L -O "https://github.com/${REPOSITORY_NAME}/releases/download/${COMMIT}/istio-${COMMIT}-linux-amd64.tar.gz"
-    tar xvfz istio-${COMMIT}-linux-amd64.tar.gz
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        ARCH="amd64"
+    elif [ "$ARCH" = "aarch64" ]; then
+        ARCH="arm64"
+    fi
+    if [ "$OS" = "darwin" ]; then
+        OS="osx"
+    fi
+    curl -L -O "https://github.com/${REPOSITORY_NAME}/releases/download/${COMMIT}/istio-${COMMIT}-${OS}-${ARCH}.tar.gz"
+    tar xvfz "istio-${COMMIT}-${OS}-${ARCH}.tar.gz"
 fi
 ISTIOCTL="${SOURCE_DIRECTORY}/istio-${COMMIT}/bin/istioctl"
 cd "$ISTIO_DIRECTORY"
-sed -i "s/tag: .*/tag: $COMMIT/" "$ISTIO_DIRECTORY/profile.yaml"
+perl -pi -e "s/tag: .*/tag: $COMMIT/" "$ISTIO_DIRECTORY/profile.yaml"
 $ISTIOCTL manifest generate -f profile.yaml -f profile-overlay.yaml \
   --set components.cni.enabled=true \
   --set components.cni.namespace=kube-system > dump.yaml
@@ -39,12 +49,11 @@ $ISTIOCTL manifest generate -f profile.yaml -f profile-overlay.yaml \
 ./split-istio-packages -f dump-ztunnel.yaml
 mv $ISTIO_DIRECTORY/ztunnel.yaml $ISTIO_DIRECTORY/istio-install/components/ambient-mode/
 rm dump-ztunnel.yaml crd.yaml install.yaml cluster-local-gateway.yaml
-sed -i "s/\"tag\": \".*\"/\"tag\": \"$COMMIT\"/" "$ISTIO_DIRECTORY/istio-install/base/patches/istio-sidecar-injector-patch.yaml"
+perl -pi -e "s/\"tag\": \".*\"/\"tag\": \"$COMMIT\"/" "$ISTIO_DIRECTORY/istio-install/base/patches/istio-sidecar-injector-patch.yaml"
 # Normalize all remaining Istio version references from PREVIOUS_COMMIT to COMMIT.
 # This catches any version strings that istioctl generates using the previous release
 # (e.g. image tags, helm chart labels). Update PREVIOUS_COMMIT when bumping COMMIT.
-find "$ISTIO_DIRECTORY" -name "*.yaml" | xargs sed -i \
-  -e "s/${PREVIOUS_COMMIT}/$COMMIT/g"
+find "$ISTIO_DIRECTORY" -name "*.yaml" | xargs perl -pi -e "s/${PREVIOUS_COMMIT}/$COMMIT/g"
 SOURCE_TEXT="\[.*\](https://github.com/${REPOSITORY_NAME}/releases/tag/.*)"
 DESTINATION_TEXT="\[$COMMIT\](https://github.com/${REPOSITORY_NAME}/releases/tag/$COMMIT)"
 update_readme "$MANIFESTS_DIRECTORY" "$SOURCE_TEXT" "$DESTINATION_TEXT"
